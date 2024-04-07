@@ -12,7 +12,7 @@ use zeth_lib::{
 use super::{
     context::Context,
     error::Result,
-    request::{ProofRequest, PseZkRequest, SgxRequest},
+    request::{ProofRequest, PseZkRequest, SgxParam, SgxRequest},
 };
 
 /// prepare input data for guests
@@ -25,21 +25,22 @@ where
 {
     match req {
         ProofRequest::Sgx(SgxRequest {
-            block,
+            block_number,
             l1_rpc,
-            l1_beacon_rpc,
-            l2_rpc,
+            beacon_rpc,
+            rpc,
             prover,
             graffiti,
+            proof_param: SgxParam { .. },
         }) => {
-            let l2_block = *block;
+            let l2_block = *block_number;
 
             let l2_spec = get_taiko_chain_spec(&ctx.l2_chain);
-            let l2_rpc = l2_rpc.to_owned();
+            let l2_rpc = rpc.to_owned();
 
             let l1_spec = ETH_MAINNET_CHAIN_SPEC.clone();
             let l1_rpc = l1_rpc.to_owned();
-            let l1_beacon_rpc = l1_beacon_rpc.to_owned();
+            let l1_beacon_rpc = beacon_rpc.to_owned();
             let prover = prover.to_owned();
             let graffiti = *graffiti;
             // run sync task in blocking mode

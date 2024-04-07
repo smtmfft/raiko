@@ -20,8 +20,8 @@ pub async fn execute(
 ) -> Result<ProofResponse> {
     let (l1_cache_file, l2_cache_file) = match req {
         ProofRequest::Sgx(req) => {
-            let l1_cache_file = cache_file_path(&ctx.cache_path, req.block, true);
-            let l2_cache_file = cache_file_path(&ctx.cache_path, req.block, false);
+            let l1_cache_file = cache_file_path(&ctx.cache_path, req.block_number, true);
+            let l2_cache_file = cache_file_path(&ctx.cache_path, req.block_number, false);
             (l1_cache_file, l2_cache_file)
         }
         ProofRequest::PseZk(_) => todo!(),
@@ -47,7 +47,7 @@ pub async fn execute(
         match req {
             ProofRequest::Sgx(req) => {
                 let start = Instant::now();
-                let bid = req.block;
+                let bid = req.block_number;
                 let resp = execute_sgx(ctx, req).await?;
                 let time_elapsed = Instant::now().duration_since(start).as_millis() as i64;
                 observe_sgx_gen(bid, time_elapsed);
