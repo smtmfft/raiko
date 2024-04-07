@@ -5,7 +5,7 @@ use serde_with::{serde_as, DisplayFromStr};
 use zeth_primitives::{Address, B256};
 
 #[derive(Clone, Serialize, Deserialize)]
-#[serde(tag = "proofType")]
+#[serde(tag = "proof_type")]
 #[serde(rename_all = "camelCase")]
 #[allow(clippy::large_enum_variant)]
 pub enum ProofRequest {
@@ -24,7 +24,6 @@ pub struct SgxParam {
 
 #[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct SgxRequest {
     /// the block number
     pub block_number: u64,
@@ -40,6 +39,7 @@ pub struct SgxRequest {
     #[serde_as(as = "DisplayFromStr")]
     pub prover: Address,
     // Generic proof parameters which has to match with the type
+    #[serde(rename = "sgx")]
     pub proof_param: SgxParam,
 }
 
