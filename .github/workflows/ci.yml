@@ -40,7 +40,7 @@ jobs:
         run: |
           cargo build --features sgx
           cargo test -p sgx-prover --features enable --release
-          cd target/release
+          cd target/debug
           gramine-manifest -Dlog_level=error -Ddirect_mode=0 -Darch_libdir=/lib/x86_64-linux-gnu/ ../../provers/sgx/config/sgx-guest.local.manifest.template sgx-guest.manifest
           gramine-sgx-sign --manifest sgx-guest.manifest --output sgx-guest.manifest.sgx
           gramine-sgx-sigstruct-view sgx-guest.sig
