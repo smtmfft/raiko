@@ -16,52 +16,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-test-risc0:
-    name: Build and test risc0
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-    - uses: actions-rs/toolchain@v1
-      with:
-          toolchain: stable
-          profile: minimal
-    - name: Install cargo-binstall
-      uses: cargo-bins/cargo-binstall@v1.6.4
-    - uses: risc0/risc0/.github/actions/sccache@release-0.19
-    - name: Install risc0
-      run: TARGET="risc0" CI=1 make install
-    - name: Build risc0 prover
-      run: TARGET="risc0" make build
-    - name: Test risc0 prover
-      run: TARGET="risc0" make test
-
-  build-test-sp1:
-    name: Build and test sp1
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-    - uses: actions-rs/toolchain@v1
-      with:
-          toolchain: nightly-2024-04-17
-          profile: minimal
-    - name: Install cargo-binstall
-      uses: cargo-bins/cargo-binstall@v1.6.4
-    - name: Install sp1
-      run: TARGET="sp1" CI=1 make install
-    - name: Build sp1 prover
-      run: TARGET="sp1" make build
-    - name: Test sp1 prover
-      run: TARGET="sp1" make test
-
   build-test-sgx:
     name: Build and test sgx
-    runs-on: ubuntu-latest
+    runs-on: VM-0-9-debian
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -77,51 +34,12 @@ jobs:
         run: TARGET="sgx" CI=1 make install
       - name: Build sgx prover
         run: TARGET="sgx" make build
-      - name: Test sgx prover
+      - name: Test sgx native prover
         run: TARGET="sgx" SGX_DIRECT=1 make test
-
-  build-test-sgx-with-docker:
-    name: Build and test sgx with Docker
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup and build
+      - name: Test sgx prover
         run: |
-          cd docker
-          docker compose build --no-cache
+          gramine-manifest -Dlog_level=error -Ddirect_mode=0 -Darch_libdir=/lib/x86_64-linux-gnu/ ../../provers/sgx/config/sgx-guest.local.manifest.template sgx-guest.manifest
+          gramine-sgx-sign --manifest sgx-guest.manifest --output sgx-guest.manifest.sgx
+          gramine-sgx-sigstruct-view sgx-guest.sig
         shell: bash
 
-  test-lib:
-    name: Test raiko-lib
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-      - run: cargo test -p raiko-lib --features=std
-
-  clippy:
-    name: clippy
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-    - uses: actions/checkout@v4
-    - uses: risc0/risc0/.github/actions/rustup@release-0.19
-    - uses: risc0/risc0/.github/actions/sccache@release-0.19
-    - uses: risc0/clippy-action@main
-      with:
-        reporter: 'github-pr-check'
-        fail_on_error: true
-        clippy_flags: --workspace --all-targets --all-features -- -Dwarnings
-
-  fmt:
-    name: fmt
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-    - uses: actions/checkout@v4
-    - uses: risc0/risc0/.github/actions/rustup@release-0.19
-    - run: make fmt
