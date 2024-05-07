@@ -36,13 +36,13 @@ jobs:
         run: TARGET="sgx" make build
       - name: Test sgx native prover
         run: TARGET="sgx" SGX_DIRECT=1 make test
-      - name: Test sgx prover
+      - name: Check sgx execution env
         run: |
-          cargo build --features sgx
-          cargo test -p sgx-prover --features enable --release
-          cd target/debug
+          cd target/release
           gramine-manifest -Dlog_level=error -Ddirect_mode=0 -Darch_libdir=/lib/x86_64-linux-gnu/ ../../provers/sgx/config/sgx-guest.local.manifest.template sgx-guest.manifest
           gramine-sgx-sign --manifest sgx-guest.manifest --output sgx-guest.manifest.sgx
           gramine-sgx-sigstruct-view sgx-guest.sig
+      - name: Test sgx prover
+        run: TARGET="sgx" make test
         shell: bash
 
