@@ -32,7 +32,7 @@ fi
 if [ -z "$1" ] || [ "$1" == "sgx" ]; then
 	# For SGX, install gramine: https://github.com/gramineproject/gramine.
 	wget -O /tmp/gramine.deb https://packages.gramineproject.io/pool/main/g/gramine/gramine_1.6.2_amd64.deb
-	sudo apt install /tmp/gramine.deb
+	sudo apt install -y /tmp/gramine.deb
 fi
 # RISC0
 if [ -z "$1" ] || [ "$1" == "risc0" ]; then
