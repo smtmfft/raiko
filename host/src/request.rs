@@ -69,65 +69,27 @@ impl FromStr for ProofType {
 }
 
 impl ProofType {
-    /// Get the instance hash for the protocol instance depending on the proof type.
-    pub fn instance_hash(&self, pi: ProtocolInstance) -> HostResult<B256> {
+
+    pub fn get_prover(&self, conf: &serde_json::Value) -> Box<dyn Prover> {
         match self {
-            ProofType::Native => Ok(NativeProver::instance_hash(pi)),
+            ProofType::Native => Box::new(NativeProver::default()),
             ProofType::Sp1 => {
                 #[cfg(feature = "sp1")]
-                return Ok(sp1_driver::Sp1Prover::instance_hash(pi));
+                return Box::new(sp1_driver::Sp1Prover::default());
 
-                Err(HostError::FeatureNotSupportedError(self.clone()))
+                panic!("Feature not supported: {:?}", self)
             }
             ProofType::Risc0 => {
                 #[cfg(feature = "risc0")]
-                return Ok(risc0_driver::Risc0Prover::instance_hash(pi));
+                return Box::new(risc0_driver::Risc0Prover::default());
 
-                Err(HostError::FeatureNotSupportedError(self.clone()))
+                panic!("Feature not supported: {:?}", self)
             }
             ProofType::Sgx => {
                 #[cfg(feature = "sgx")]
-                return Ok(sgx_prover::SgxProver::instance_hash(pi));
+                return Box::new(sgx_prover::SgxProver::new(conf));
 
-                Err(HostError::FeatureNotSupportedError(self.clone()))
-            }
-        }
-    }
-
-    /// Run the prover driver depending on the proof type.
-    pub async fn run_prover(
-        &self,
-        input: GuestInput,
-        output: &GuestOutput,
-        config: &Value,
-    ) -> HostResult<Proof> {
-        match self {
-            ProofType::Native => NativeProver::run(input, output, config)
-                .await
-                .map_err(|e| e.into()),
-            ProofType::Sp1 => {
-                #[cfg(feature = "sp1")]
-                return sp1_driver::Sp1Prover::run(input, output, config)
-                    .await
-                    .map_err(|e| e.into());
-
-                Err(HostError::FeatureNotSupportedError(self.clone()))
-            }
-            ProofType::Risc0 => {
-                #[cfg(feature = "risc0")]
-                return risc0_driver::Risc0Prover::run(input, output, config)
-                    .await
-                    .map_err(|e| e.into());
-
-                Err(HostError::FeatureNotSupportedError(self.clone()))
-            }
-            ProofType::Sgx => {
-                #[cfg(feature = "sgx")]
-                return sgx_prover::SgxProver::run(input, output, config)
-                    .await
-                    .map_err(|e| e.into());
-
-                Err(HostError::FeatureNotSupportedError(self.clone()))
+                panic!("Feature not supported: {:?}", self)
             }
         }
     }

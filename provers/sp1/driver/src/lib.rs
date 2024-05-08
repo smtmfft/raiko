@@ -21,10 +21,15 @@ pub struct Sp1Response {
     pub output: GuestOutput,
 }
 
+#[derive(Default, Clone)]
 pub struct Sp1Prover;
 
+use async_trait::async_trait;
+
+#[async_trait]
 impl Prover for Sp1Prover {
     async fn run(
+        &self,
         input: GuestInput,
         _output: &GuestOutput,
         _config: &ProverConfig,
@@ -65,7 +70,7 @@ impl Prover for Sp1Prover {
         }))
     }
 
-    fn instance_hash(pi: ProtocolInstance) -> B256 {
+    fn instance_hash(&self, pi: ProtocolInstance) -> B256 {
         let data = (pi.transition.clone(), pi.prover, pi.meta_hash()).abi_encode();
 
         let hash: [u8; 32] = sha3::Keccak256::digest(data).into();

@@ -27,6 +27,7 @@ url = { workspace = true }
 hex = { workspace = true }
 c-kzg-taiko = { workspace = true }
 sha2 = { workspace = true }
+async-trait = "0.1.47"
 
 # [target.'cfg(feature = "std")'.dependencies]
 thiserror = { workspace = true, optional = true }

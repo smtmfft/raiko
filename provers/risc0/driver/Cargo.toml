@@ -30,6 +30,7 @@ typetag = { workspace = true, optional = true }
 serde_with = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true  }
 hex = { workspace = true, optional = true }
+async-trait = "0.1.47"
 
 [features]
 dummy-elf = [] # use dummy elf bytes to accelerate cargo check

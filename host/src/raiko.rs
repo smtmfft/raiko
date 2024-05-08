@@ -40,13 +40,17 @@ pub trait BlockDataProvider {
 pub struct Raiko {
     chain_spec: ChainSpec,
     request: ProofRequest,
+    typed_prover: Box<dyn Prover>,
 }
 
 impl Raiko {
     pub fn new(chain_spec: ChainSpec, request: ProofRequest) -> Self {
+        let config = serde_json::to_value(request.clone()).unwrap_or_default();
+        let typed_prover = request.clone().proof_type.get_prover(&config);
         Self {
             chain_spec,
             request,
+            typed_prover,
         }
     }
 
@@ -76,9 +80,8 @@ impl Raiko {
                 println!("Final block hash derived successfully. {}", header.hash());
                 println!("Final block header derived successfully. {:?}", header);
                 let pi = self
-                    .request
-                    .proof_type
-                    .instance_hash(assemble_protocol_instance(&input, &header)?)?;
+                    .typed_prover
+                    .instance_hash(assemble_protocol_instance(&input, &header)?);
 
                 // Check against the expected value of all fields for easy debugability
                 let exp = &input.block_header_reference;
@@ -156,17 +159,19 @@ impl Raiko {
         input: GuestInput,
         output: &GuestOutput,
     ) -> Result<serde_json::Value, HostError> {
-        self.request
-            .proof_type
-            .run_prover(
-                input.clone(),
-                output,
-                &serde_json::to_value(self.request.clone())?,
-            )
+        let config = serde_json::to_value(self.request.clone())?;
+
+        self.typed_prover
+            .run(input.clone(), output, &config)
             .await
+            .map_err(|e| {
+                warn!("Proving failed: {}", e);
+                HostError::GuestError(e)
+            })
     }
 }
 
+#[derive(Default, Clone)]
 pub struct NativeProver;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -174,8 +179,12 @@ pub struct NativeResponse {
     pub output: GuestOutput,
 }
 
+use async_trait::async_trait;
+
+#[async_trait]
 impl Prover for NativeProver {
     async fn run(
+        &self,
         input: GuestInput,
         output: &GuestOutput,
         _request: &serde_json::Value,
@@ -194,7 +203,7 @@ impl Prover for NativeProver {
         }))
     }
 
-    fn instance_hash(_pi: ProtocolInstance) -> B256 {
+    fn instance_hash(&self, _pi: ProtocolInstance) -> B256 {
         B256::default()
     }
 }

@@ -32,15 +32,19 @@ pub type ProverResult<T, E = ProverError> = core::result::Result<T, E>;
 pub type ProverConfig = serde_json::Value;
 pub type Proof = serde_json::Value;
 
+use async_trait::async_trait;
+
+#[async_trait]
 #[allow(async_fn_in_trait)]
 pub trait Prover {
     async fn run(
+        &self,
         input: GuestInput,
         output: &GuestOutput,
         config: &ProverConfig,
     ) -> ProverResult<Proof>;
 
-    fn instance_hash(pi: ProtocolInstance) -> B256;
+    fn instance_hash(&self, pi: ProtocolInstance) -> B256;
 }
 
 pub fn to_proof(proof: ProverResult<impl Serialize>) -> ProverResult<Proof> {

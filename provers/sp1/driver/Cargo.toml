@@ -13,6 +13,7 @@ sp1-sdk = { workspace = true, optional = true }
 anyhow = { workspace = true, optional = true }
 once_cell = { workspace = true }
 sha3 = { workspace = true, default-features = false}
+async-trait = "0.1.47"
 
 [build-dependencies]
 sp1-helper = { workspace = true, optional = true }

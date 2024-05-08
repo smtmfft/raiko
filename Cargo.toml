@@ -10,7 +10,6 @@ members = [
     "provers/risc0/builder",
     "provers/sgx/prover",
     "provers/sgx/guest", 
-    "provers/sgx/setup",
     "pipeline",
 ]
 

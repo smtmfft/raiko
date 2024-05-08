@@ -4,12 +4,14 @@ use std::{
     fs::{copy, create_dir_all, remove_file},
     path::{Path, PathBuf},
     process::{Command as StdCommand, Output, Stdio},
-    str,
+    str::{self, FromStr},
 };
 
 use alloy_sol_types::SolValue;
 use once_cell::sync::Lazy;
+use raiko_lib::consts::get_network_spec;
 use raiko_lib::{
+    consts::{ChainSpec, Network},
     input::{GuestInput, GuestOutput},
     protocol_instance::ProtocolInstance,
     prover::{to_proof, Proof, Prover, ProverConfig, ProverError, ProverResult},
@@ -19,6 +21,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_with::serde_as;
 use tokio::{process::Command, sync::OnceCell};
+use tracing::warn;
 
 pub use crate::sgx_register_utils::register_sgx_instance;
 
@@ -26,6 +29,7 @@ pub const PRIV_KEY_FILENAME: &str = "priv.key";
 
 // to register the instance id
 mod sgx_register_utils;
+mod sgx_setup;
 
 #[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -54,14 +58,63 @@ pub const CONFIG: &str = if cfg!(feature = "docker_build") {
 static GRAMINE_MANIFEST_TEMPLATE: Lazy<OnceCell<PathBuf>> = Lazy::new(OnceCell::new);
 static PRIVATE_KEY: Lazy<OnceCell<PathBuf>> = Lazy::new(OnceCell::new);
 
-pub struct SgxProver;
+pub struct SgxProver {
+    pub bootstraped: bool,
+}
 
+impl SgxProver {
+    pub fn new(conf: &serde_json::Value) -> Self {
+        let secrets_dir = PathBuf::from(conf["secrets_dir"].as_str().unwrap());
+        let config_dir = PathBuf::from(conf["config_dir"].as_str().unwrap());
+        let l1_chain_spec: ChainSpec = get_network_spec(
+            Network::from_str(conf["l1_network"].as_str().unwrap_or_default()).unwrap(),
+        );
+        let l2_chain_spec: ChainSpec = get_network_spec(
+            Network::from_str(conf["l2_network"].as_str().unwrap_or_default()).unwrap(),
+        );
+        let sgx_auto_reg_opt: Option<sgx_setup::SgxAutoRegisterParams> = conf
+            .get("sgx_auto_reg")
+            .map(|v| {
+                if v.as_bool().unwrap_or_default() {
+                    Some(sgx_setup::SgxAutoRegisterParams {
+                        l1_rpc: conf["l1_rpc"].as_str().unwrap().to_string(),
+                        l1_chain_id: l1_chain_spec.chain_id,
+                        sgx_verifier_address: l2_chain_spec.sgx_verifier_address.unwrap(),
+                    })
+                } else {
+                    None
+                }
+            })
+            .flatten();
+
+        let rt = tokio::runtime::Runtime::new().unwrap();
+    
+        // 在异步运行时中执行async函数
+        let bootstraped = rt.block_on(async {
+            sgx_setup::sgx_setup(secrets_dir, config_dir, sgx_auto_reg_opt)
+            .await
+            .is_ok()
+        });
+
+        SgxProver { bootstraped }
+    }
+}
+
+use async_trait::async_trait;
+
+#[async_trait]
 impl Prover for SgxProver {
     async fn run(
+        &self,
         input: GuestInput,
         _output: &GuestOutput,
         config: &ProverConfig,
     ) -> ProverResult<Proof> {
+        if !self.bootstraped {
+            // can boot strap on the fly, but in k8s it's a error
+            warn!("SGX prover not bootstrapped");
+        }
+
         let sgx_param = SgxParam::deserialize(config.get("sgx").unwrap()).unwrap();
 
         // Support both SGX and the direct backend for testing
@@ -131,7 +184,7 @@ impl Prover for SgxProver {
         to_proof(sgx_proof)
     }
 
-    fn instance_hash(pi: ProtocolInstance) -> B256 {
+    fn instance_hash(&self, pi: ProtocolInstance) -> B256 {
         let data = (
             "VERIFY_PROOF",
             pi.chain_id,

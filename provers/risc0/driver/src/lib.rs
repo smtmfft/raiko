@@ -41,12 +41,18 @@ pub struct Risc0Param {
 pub struct Risc0Response {
     pub proof: String,
 }
+
+#[derive(Default, Clone)]
 pub struct Risc0Prover;
 
 use serde_json::json;
 
+use async_trait::async_trait;
+
+#[async_trait]
 impl Prover for Risc0Prover {
     async fn run(
+        &self,
         input: GuestInput,
         output: &GuestOutput,
         config: &ProverConfig,
@@ -99,7 +105,7 @@ impl Prover for Risc0Prover {
         to_proof(Ok(Risc0Response { proof: journal }))
     }
 
-    fn instance_hash(pi: ProtocolInstance) -> B256 {
+    fn instance_hash(&self, pi: ProtocolInstance) -> B256 {
         let data = (pi.transition.clone(), pi.prover, pi.meta_hash()).abi_encode();
 
         keccak(data).into()
