@@ -35,7 +35,7 @@ sgx.allowed_files = [
   {{ " 'file:secrets', " if direct_mode == '1' else ""}}
 ]
 sgx.debug = false
-sgx.edmm_enable = {{ 'true' if env.get('EDMM', '1') == '1' else 'false' }}
+sgx.edmm_enable = {{ 'true' if env.get('EDMM', '0') == '1' else 'false' }}
 sgx.trusted_files = [
   "file:{{ arch_libdir }}/libcrypto.so.3",
   "file:{{ arch_libdir }}/libgcc_s.so.1",
