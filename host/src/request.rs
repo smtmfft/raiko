@@ -69,27 +69,27 @@ impl FromStr for ProofType {
 }
 
 impl ProofType {
-
     pub fn get_prover(&self, conf: &serde_json::Value) -> Box<dyn Prover> {
         match self {
             ProofType::Native => Box::new(NativeProver::default()),
             ProofType::Sp1 => {
-                #[cfg(feature = "sp1")]
-                return Box::new(sp1_driver::Sp1Prover::default());
+                #[cfg(feature != "sp1")]
+                panic!("Feature not supported: {:?}", self);
 
-                panic!("Feature not supported: {:?}", self)
+                Box::new(sp1_driver::Sp1Prover::default());
             }
             ProofType::Risc0 => {
-                #[cfg(feature = "risc0")]
-                return Box::new(risc0_driver::Risc0Prover::default());
+                #[cfg(feature != "risc0")]
+                panic!("Feature not supported: {:?}", self);
 
-                panic!("Feature not supported: {:?}", self)
+                Box::new(risc0_driver::Risc0Prover::default())
             }
             ProofType::Sgx => {
-                #[cfg(feature = "sgx")]
-                return Box::new(sgx_prover::SgxProver::new(conf));
+                #[cfg(feature != "sgx")]
+                panic!("Feature not supported: {:?}", self);
 
-                panic!("Feature not supported: {:?}", self)
+                Box::new(sgx_prover::SgxProver::new(conf))
+
             }
         }
     }

@@ -88,8 +88,6 @@ impl SgxProver {
             .flatten();
 
         let rt = tokio::runtime::Runtime::new().unwrap();
-    
-        // 在异步运行时中执行async函数
         let bootstraped = rt.block_on(async {
             sgx_setup::sgx_setup(secrets_dir, config_dir, sgx_auto_reg_opt)
             .await
