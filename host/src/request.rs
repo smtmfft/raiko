@@ -3,22 +3,13 @@ use std::{collections::HashMap, path::Path, str::FromStr};
 
 use alloy_primitives::{Address, B256};
 use clap::{Args, ValueEnum};
-use raiko_lib::{
-    consts::Network,
-    input::{GuestInput, GuestOutput},
-    protocol_instance::ProtocolInstance,
-    prover::{Proof, Prover},
-};
+use raiko_lib::{consts::Network, prover::Prover};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_with::{serde_as, DisplayFromStr};
 use utoipa::ToSchema;
 
-use crate::{
-    error::{HostError, HostResult},
-    merge,
-    raiko::NativeProver,
-};
+use crate::{error::HostError, merge, raiko::NativeProver};
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Clone, Debug, Deserialize, Serialize, ToSchema, Hash, ValueEnum,
@@ -69,27 +60,26 @@ impl FromStr for ProofType {
 }
 
 impl ProofType {
-    pub fn get_prover(&self, conf: &serde_json::Value) -> Box<dyn Prover> {
+    pub fn get_prover(&self, conf: &serde_json::Value) -> Box<dyn Prover + Send + Sync> {
         match self {
             ProofType::Native => Box::new(NativeProver::default()),
             ProofType::Sp1 => {
-                #[cfg(feature != "sp1")]
+                #[cfg(not(feature = "sp1"))]
                 panic!("Feature not supported: {:?}", self);
-
-                Box::new(sp1_driver::Sp1Prover::default());
+                #[cfg(feature = "sp1")]
+                Box::new(sp1_driver::Sp1Prover::default())
             }
             ProofType::Risc0 => {
-                #[cfg(feature != "risc0")]
+                #[cfg(not(feature = "risc0"))]
                 panic!("Feature not supported: {:?}", self);
-
+                #[cfg(feature = "risc0")]
                 Box::new(risc0_driver::Risc0Prover::default())
             }
             ProofType::Sgx => {
-                #[cfg(feature != "sgx")]
+                #[cfg(not(feature = "sgx"))]
                 panic!("Feature not supported: {:?}", self);
-
+                #[cfg(feature = "sgx")]
                 Box::new(sgx_prover::SgxProver::new(conf))
-
             }
         }
     }

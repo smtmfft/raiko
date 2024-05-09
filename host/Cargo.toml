@@ -74,7 +74,7 @@ ethers-core = { workspace = true }
 
 [features]
 # powdr = ["dep:powdr"]
-default = ["risc0", "sp1", "sgx"]
+default = ["sgx"]
 sp1 = ["dep:sp1-driver", "sp1-driver/enable"]
 risc0 = ["dep:risc0-driver", "risc0-driver/enable"]
 sgx = ["dep:sgx-prover", "sgx-prover/enable"]

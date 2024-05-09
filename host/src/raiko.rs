@@ -40,7 +40,7 @@ pub trait BlockDataProvider {
 pub struct Raiko {
     chain_spec: ChainSpec,
     request: ProofRequest,
-    typed_prover: Box<dyn Prover>,
+    typed_prover: Box<dyn Prover + Send + Sync>,
 }
 
 impl Raiko {

@@ -3,7 +3,7 @@ use std::{borrow::Cow, path::PathBuf};
 
 pub const DIGEST_WORDS: usize = 8;
 
-pub fn risc0_data() -> Result<PathBuf> {
+pub fn _risc0_data() -> Result<PathBuf> {
     let dir = if let Ok(dir) = std::env::var("RISC0_DATA_DIR") {
         dir.into()
     } else if let Some(root) = dirs::data_dir() {
