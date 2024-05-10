@@ -1,3 +1,6 @@
+use crate::{
+    provider_db::ProviderDb, raiko::BlockDataProvider, rpc_provider::RpcBlockDataProvider,
+};
 use alloy_consensus::{
     SignableTransaction, TxEip1559, TxEip2930, TxEip4844, TxEip4844Variant, TxEnvelope, TxLegacy,
 };
@@ -25,10 +28,6 @@ use raiko_primitives::{
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, sync::Arc};
-
-use crate::{
-    provider_db::ProviderDb, raiko::BlockDataProvider, rpc_provider::RpcBlockDataProvider,
-};
 
 pub async fn preflight<BDP: BlockDataProvider>(
     provider: BDP,
@@ -318,7 +317,7 @@ struct GetBlobData {
     // pub signed_block_header: SignedBeaconBlockHeader, // ignore for now
     pub kzg_commitment: String,
     pub kzg_proof: String,
-    pub kzg_commitment_inclusion_proof: Vec<String>,
+    // pub kzg_commitment_inclusion_proof: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -498,6 +497,7 @@ mod test {
     use ethers_core::types::Transaction;
     use raiko_lib::{consts::get_network_spec, utils::decode_transactions};
     use raiko_primitives::{eip4844::parse_kzg_trusted_setup, kzg::KzgSettings};
+    use sha2::{Digest as _, Sha256};
 
     use super::*;
 
@@ -704,33 +704,23 @@ mod test {
     // .await
     // .unwrap();
     // }
-    //
-    // #[ignore]
-    // #[tokio::test]
-    // async fn test_fetch_and_decode_blob_tx() {
-    // let block_num = std::env::var("TAIKO_L2_BLOCK_NO")
-    // .unwrap_or("94".to_owned())
-    // .parse::<u64>()
-    // .unwrap();
-    // tokio::task::spawn_blocking(move || {
-    // let mut provider = new_provider(
-    // None,
-    // Some("http://35.202.137.144:8545".to_owned()),
-    // Some("http://35.202.137.144:3500".to_owned()),
-    // )
-    // .expect("bad provider");
-    // let blob_data = provider.get_blob_data(block_num).unwrap();
-    // println!("blob str len: {:?}", blob_data.data[0].blob.len());
-    // let blob_bytes = decode_blob_data(&blob_data.data[0].blob);
-    // println!("blob byte len: {:?}", blob_bytes.len());
-    // println!("blob bytes {:?}", blob_bytes);
-    // rlp decode blob tx
-    // let txs: Vec<Transaction> = rlp_decode_list(&blob_bytes).unwrap();
-    // println!("blob tx: {:?}", txs);
-    // })
-    // .await
-    // .unwrap();
-    // }
+
+    #[ignore]
+    #[tokio::test]
+    async fn test_fetch_and_decode_blob_tx() {
+        let block_num = std::env::var("L1_BLOCK_NO")
+            .unwrap_or("1599990".to_owned())
+            .parse::<u64>()
+            .unwrap();
+        let beacon_url = "https://eth-holesky-beacon.public.blastapi.io";
+        let blob_data = get_blob_data(beacon_url, block_num).await.unwrap();
+        println!("blobs size: {:?}", blob_data.data.len());
+        let blob_bytes = blob_to_bytes(&blob_data.data[0].blob);
+        println!("blob byte len: {:?}", blob_bytes.len());
+        // println!("blob bytes {:?}", blob_bytes);
+        let blob_hash = Sha256::digest(&blob_bytes.as_slice());
+        println!("blob hash {:?}", hex::encode(blob_hash));
+    }
 
     #[ignore]
     #[test]

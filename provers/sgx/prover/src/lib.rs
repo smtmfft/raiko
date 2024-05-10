@@ -64,13 +64,13 @@ pub struct SgxProver {
 
 impl SgxProver {
     pub fn new(conf: &serde_json::Value) -> Self {
-        let secrets_dir = PathBuf::from(conf["secrets_dir"].as_str().unwrap());
-        let config_dir = PathBuf::from(conf["config_dir"].as_str().unwrap());
+        let secrets_dir = PathBuf::from(conf["sgx"]["secrets_dir"].as_str().unwrap());
+        let config_dir = PathBuf::from(conf["sgx"]["config_dir"].as_str().unwrap());
         let l1_chain_spec: ChainSpec = get_network_spec(
             Network::from_str(conf["l1_network"].as_str().unwrap_or_default()).unwrap(),
         );
         let l2_chain_spec: ChainSpec = get_network_spec(
-            Network::from_str(conf["l2_network"].as_str().unwrap_or_default()).unwrap(),
+            Network::from_str(conf["network"].as_str().unwrap_or_default()).unwrap(),
         );
         let sgx_auto_reg_opt: Option<sgx_setup::SgxAutoRegisterParams> = conf
             .get("sgx_auto_reg")

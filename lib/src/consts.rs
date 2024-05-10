@@ -280,6 +280,7 @@ impl ChainSpec {
 }
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
 pub enum Network {
     /// The Ethereum Mainnet
     #[default]
@@ -287,7 +288,9 @@ pub enum Network {
     /// Ethereum testnet holesky
     Holesky,
     /// Taiko A6 tesnet
+    #[serde(rename = "taiko_a6")]
     TaikoA6,
+    #[serde(rename = "taiko_a7")]
     /// Taiko A7 tesnet
     TaikoA7,
 }
@@ -302,7 +305,7 @@ impl FromStr for Network {
             "taiko_a6" => Ok(Network::TaikoA6),
             "taiko_a7" => Ok(Network::TaikoA7),
             #[allow(clippy::needless_return)]
-            _ => bail!("Unknown network"),
+            any => bail!("Unknown network {}", any),
         }
     }
 }

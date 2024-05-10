@@ -3,6 +3,8 @@
     "l1_network": "holesky",
     "prover_args": {
         "sgx": {
+            "secrets_dir": "/root/.config/raiko/secrets",
+            "config_dir": "/root/.config/raiko/config",
             "instance_id": 123456,
             "sgx_auto_reg": false
         }
