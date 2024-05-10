@@ -37,9 +37,6 @@ services:
       - ${HOME}/.config/raiko/config/config.sgx.json:/etc/raiko/config.sgx.json
     environment:
       - SENDER_PRIV_KEY=${SENDER_PRIV_KEY}
-      - L1_RPC=${L1_RPC}
-      - L1_CHAIN_ID=${L1_CHAIN_ID}
-      - SGX_VERIFIER_ADDRESS=${SGX_VERIFIER_ADDRESS}
       #- PCCS_HOST=host.docker.internal:8081
     depends_on:
       - pccs
