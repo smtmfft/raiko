@@ -67,7 +67,7 @@ pub fn generate_transactions(
         let compressed_tx_list = decode_blob_data(tx_list);
         zlib_decompress_data(&compressed_tx_list).unwrap_or_default()
     } else {
-        if chain_spec.network() == Some(Network::TaikoA7) {
+        if chain_spec.network() == Network::TaikoA7.to_string() {
             // decompress the tx list first to align with A7 client
             let de_tx_list: Vec<u8> = zlib_decompress_data(&tx_list.to_owned()).unwrap_or_default();
             if validate_calldata_tx_list(&de_tx_list) {
@@ -308,7 +308,7 @@ pub fn check_anchor_tx(input: &GuestInput, anchor: &TxEnvelope, from: &Address) 
                 anchor_call.l1Hash == input.taiko.l1_header.hash(),
                 "L1 hash mismatch"
             );
-            if input.chain_spec.network().unwrap() == Network::TaikoA7 {
+            if input.chain_spec.network() == Network::TaikoA7.to_string() {
                 ensure!(
                     anchor_call.l1StateRoot == input.taiko.l1_header.state_root,
                     "L1 state root mismatch"
