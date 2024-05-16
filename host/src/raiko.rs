@@ -34,14 +34,20 @@ pub trait BlockDataProvider {
 }
 
 pub struct Raiko {
-    chain_spec: ChainSpec,
+    l1_chain_spec: ChainSpec,
+    raiko_chain_spec: ChainSpec,
     request: ProofRequest,
 }
 
 impl Raiko {
-    pub fn new(chain_spec: ChainSpec, request: ProofRequest) -> Self {
+    pub fn new(
+        l1_chain_spec: ChainSpec,
+        raiko_chain_spec: ChainSpec,
+        request: ProofRequest,
+    ) -> Self {
         Self {
-            chain_spec,
+            l1_chain_spec,
+            raiko_chain_spec,
             request,
         }
     }
@@ -53,13 +59,18 @@ impl Raiko {
         preflight(
             provider,
             self.request.block_number,
-            self.chain_spec.clone(),
+            self.raiko_chain_spec.clone(),
             TaikoProverData {
                 graffiti: self.request.graffiti,
                 prover: self.request.prover,
             },
-            Some(self.request.l1_rpc.clone()),
-            Some(self.request.beacon_rpc.clone()),
+            Some(self.l1_chain_spec.rpc.clone()),
+            Some(
+                self.l1_chain_spec
+                    .beacon_rpc
+                    .clone()
+                    .ok_or_else(|| error::HostError::Preflight("Missing beacon rpc".to_owned()))?,
+            ),
         )
         .await
         .map_err(Into::<error::HostError>::into)
@@ -246,11 +257,15 @@ mod tests {
         prover_args
     }
 
-    async fn prove_block(chain_spec: ChainSpec, proof_request: ProofRequest) {
+    async fn prove_block(
+        l1_chain_spec: ChainSpec,
+        raiko_chain_spec: ChainSpec,
+        proof_request: ProofRequest,
+    ) {
         let provider =
-            RpcBlockDataProvider::new(&proof_request.rpc.clone(), proof_request.block_number - 1)
+            RpcBlockDataProvider::new(&raiko_chain_spec.rpc, proof_request.block_number - 1)
                 .expect("Could not create RpcBlockDataProvider");
-        let raiko = Raiko::new(chain_spec, proof_request.clone());
+        let raiko = Raiko::new(l1_chain_spec, raiko_chain_spec, proof_request.clone());
         let mut input = raiko
             .generate_input(provider)
             .await
@@ -268,26 +283,28 @@ mod tests {
     #[tokio::test(flavor = "multi_thread")]
     async fn test_prove_block_taiko_a7() {
         let proof_type = get_proof_type_from_env();
+        let l1_network = Network::Holesky.to_string();
         let network = Network::TaikoA7.to_string();
         // Give the CI an simpler block to test because it doesn't have enough memory.
         // Unfortunately that also means that kzg is not getting fully verified by CI.
         let block_number = if is_ci() { 105987 } else { 101368 };
-        let chain_spec = SupportedChainSpecs::default()
+        let raiko_chain_spec = SupportedChainSpecs::default()
             .get_chain_spec(&network)
             .unwrap();
+        let l1_chain_spec = SupportedChainSpecs::default()
+            .get_chain_spec(&l1_network)
+            .unwrap();
+
         let proof_request = ProofRequest {
             block_number,
-            rpc: "https://rpc.hekla.taiko.xyz".to_string(),
-            l1_rpc: "https://ethereum-holesky-rpc.publicnode.com".to_string(),
-            beacon_rpc: "https://eth-holesky-beacon.public.blastapi.io".to_string(),
             network,
             graffiti: B256::ZERO,
             prover: Address::ZERO,
-            l1_network: Network::Ethereum.to_string(),
+            l1_network,
             proof_type,
             prover_args: test_proof_params(),
         };
-        prove_block(chain_spec, proof_request).await;
+        prove_block(l1_chain_spec, raiko_chain_spec, proof_request).await;
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -296,23 +313,24 @@ mod tests {
         // Skip test on SP1 for now because it's too slow on CI
         if !(is_ci() && proof_type == ProofType::Sp1) {
             let network = Network::Ethereum.to_string();
+            let l1_network = Network::Ethereum.to_string();
             let block_number = 19707175;
-            let chain_spec = SupportedChainSpecs::default()
+            let raiko_chain_spec = SupportedChainSpecs::default()
                 .get_chain_spec(&network)
+                .unwrap();
+            let l1_chain_spec = SupportedChainSpecs::default()
+                .get_chain_spec(&l1_network)
                 .unwrap();
             let proof_request = ProofRequest {
                 block_number,
-                rpc: "https://rpc.ankr.com/eth".to_string(),
-                l1_rpc: String::new(),
-                beacon_rpc: String::new(),
                 network,
                 graffiti: B256::ZERO,
                 prover: Address::ZERO,
-                l1_network: Network::Ethereum.to_string(),
+                l1_network,
                 proof_type,
                 prover_args: test_proof_params(),
             };
-            prove_block(chain_spec, proof_request).await;
+            prove_block(l1_chain_spec, raiko_chain_spec, proof_request).await;
         }
     }
 }

@@ -105,17 +105,28 @@ async fn proof_handler(
         &proof_request.network.to_string(),
     );
 
-    let chain_spec = support_chain_specs
+    let l1_chain_spec = support_chain_specs
+        .get_chain_spec(&proof_request.l1_network.to_string())
+        .ok_or_else(|| {
+            dec_current_req();
+            HostError::InvalidRequestConfig("Unsupported l1 network".to_string())
+        })?;
+
+    let raiko_chain_spec = support_chain_specs
         .get_chain_spec(&proof_request.network.to_string())
         .ok_or_else(|| {
             dec_current_req();
-            HostError::InvalidRequestConfig("Unsupported network".to_string())
+            HostError::InvalidRequestConfig("Unsupported raiko network".to_string())
         })?;
 
     // Execute the proof generation.
     let total_time = Measurement::start("", false);
 
-    let raiko = Raiko::new(chain_spec, proof_request.clone());
+    let raiko = Raiko::new(
+        l1_chain_spec,
+        raiko_chain_spec.clone(),
+        proof_request.clone(),
+    );
     let input = if let Some(cached_input) = cached_input {
         debug!("Using cached input");
         cached_input
@@ -123,7 +134,7 @@ async fn proof_handler(
         memory::reset_stats();
         let measurement = Measurement::start("Generating input...", false);
         let provider =
-            RpcBlockDataProvider::new(&proof_request.rpc.clone(), proof_request.block_number - 1)?;
+            RpcBlockDataProvider::new(&raiko_chain_spec.rpc, proof_request.block_number - 1)?;
         let input = raiko.generate_input(provider).await?;
         let input_time = measurement.stop_with("=> Input generated");
         observe_prepare_input_time(proof_request.block_number, input_time, true);
