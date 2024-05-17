@@ -63,26 +63,33 @@ pub fn generate_transactions(
     anchor_tx: Option<AlloyTransaction>,
 ) -> Vec<TxEnvelope> {
     // Decode the tx list from the raw data posted onchain
-    let tx_list = &if is_blob_data {
-        let compressed_tx_list = decode_blob_data(tx_list);
-        zlib_decompress_data(&compressed_tx_list).unwrap_or_default()
-    } else {
-        if chain_spec.network() == Network::TaikoA7.to_string() {
-            // decompress the tx list first to align with A7 client
-            let de_tx_list: Vec<u8> = zlib_decompress_data(&tx_list.to_owned()).unwrap_or_default();
-            if validate_calldata_tx_list(&de_tx_list) {
-                de_tx_list
-            } else {
-                println!("validate_calldata_tx_list failed, use empty tx_list");
-                vec![]
-            }
+    let tx_list = &if chain_spec.is_taiko() {
+        if is_blob_data {
+            let compressed_tx_list = decode_blob_data(tx_list);
+            zlib_decompress_data(&compressed_tx_list).unwrap_or_default()
         } else {
-            if validate_calldata_tx_list(tx_list) {
-                zlib_decompress_data(tx_list).unwrap_or_default()
+            if chain_spec.network() == Network::TaikoA7.to_string() {
+                // decompress the tx list first to align with A7 client
+                let de_tx_list: Vec<u8> =
+                    zlib_decompress_data(&tx_list.to_owned()).unwrap_or_default();
+                if validate_calldata_tx_list(&de_tx_list) {
+                    de_tx_list
+                } else {
+                    println!("validate_calldata_tx_list failed, use empty tx_list");
+                    vec![]
+                }
             } else {
-                vec![]
+                if validate_calldata_tx_list(tx_list) {
+                    zlib_decompress_data(tx_list).unwrap_or_default()
+                } else {
+                    println!("validate_calldata_tx_list failed, use empty tx_list");
+                    vec![]
+                }
             }
         }
+    } else {
+        // for non taiko tx_list, no need to check size
+        zlib_decompress_data(tx_list).unwrap_or_default()
     };
 
     // Decode the transactions from the tx list
